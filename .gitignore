@@ -1,0 +1,13 @@
+# Ignore build artifacts
+/target/
+**/*.rs.bk
+
+# Ignore IDE/editor files
+/.vscode/
+*.swp
+*.swo
+.DS_Store
+.idea/
+
+# Ignore by Cargo
+Cargo.lock

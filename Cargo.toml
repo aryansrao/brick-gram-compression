@@ -1,0 +1,11 @@
+[package]
+name = "brick-compressor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aes-gcm = "0.10"
+rand = "0.8"
+sha2 = "0.10"
+rayon = "1.7"
+hashbrown = "0.12"
