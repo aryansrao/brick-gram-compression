@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brick Compressor - Grammar-based File Compression with AES-256 Encryption | Open Source</title>
+    <meta name="description"
+        content="Brick Compressor is a high-performance, parallel file compressor built in Rust. Features grammar-based compression inspired by Re-Pair, optional AES-256-GCM encryption, CRC32 verification, and multi-threaded processing.">
+    <meta name="keywords"
+        content="file compression, grammar-based compression, Re-Pair algorithm, AES-256 encryption, Rust compression tool, parallel compression, file compressor, data compression, dictionary compression, lossless compression, encrypted compression, CRC32 verification, high-performance compressor, multi-threaded compression, open source compression">
+    <meta name="author" content="Brick Compressor Project">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="theme-color" content="#faf8f3">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Brick Compressor - High-Performance Grammar-based File Compression">
+    <meta property="og:description"
+        content="Open-source parallel file compressor with Re-Pair inspired compression, AES-256-GCM encryption, and CRC32 verification. Built in Rust for maximum performance.">
+    <meta property="og:image" content="brick.png">
+    <meta property="og:image:alt" content="Brick Compressor logo">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Brick Compressor - Grammar-based File Compression Tool">
+    <meta name="twitter:description"
+        content="High-performance parallel file compressor built in Rust. Features grammar-based compression, optional encryption, and multi-threaded processing.">
+    <meta name="twitter:image" content="brick.png">
+
+    <!-- Favicon / Icons -->
+    <link rel="icon" href="brick.png" type="image/png">
+    <link rel="shortcut icon" href="brick.png">
+    <link rel="apple-touch-icon" href="brick.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2c2416;
+            --secondary: #f5f1e8;
+            --accent: #d4a574;
+            --text: #2c2416;
+            --light: #faf8f3;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+
+        /* Enhanced Custom Scrollbar */
+        body::-webkit-scrollbar {
+            width: 16px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: linear-gradient(to right, var(--light) 0%, var(--secondary) 50%, var(--light) 100%);
+            border-left: 1px solid rgba(212, 165, 116, 0.2);
+            box-shadow: inset 0 0 6px rgba(44, 36, 22, 0.1);
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--accent) 0%, var(--primary) 100%);
+            border-radius: 10px;
+            border: 3px solid var(--light);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(44, 36, 22, 0.2);
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--accent) 100%);
+            border: 2px solid var(--light);
+            box-shadow: 0 4px 12px rgba(44, 36, 22, 0.3);
+        }
+
+        body::-webkit-scrollbar-thumb:active {
+            background: var(--primary);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Firefox Scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) var(--secondary);
+        }
+
+        /* Scroll to Top Button */
+        #scrollToTop {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 1001;
+        }
+
+        #scrollToTop.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #scrollToTop:hover {
+            background: #1a1510;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        #scrollToTop:active {
+            transform: translateY(0);
+        }
+
+        #scrollToTop svg {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: var(--light);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Bottom Blur Bar */
+        #bottomBlur {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(180deg,
+                    rgba(255, 255, 255, 0.06) 0%,
+                    rgba(255, 255, 255, 0.04) 35%,
+                    rgba(255, 255, 255, 0.02) 60%,
+                    transparent 100%);
+            backdrop-filter: blur(10px) saturate(120%);
+            -webkit-backdrop-filter: blur(10px) saturate(120%);
+            pointer-events: none;
+            z-index: 1000;
+            mask-image: linear-gradient(to top, black 0%, black 8%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to top, black 0%, black 8%, transparent 100%);
+            border-top: 1px solid rgba(44, 36, 22, 0.04);
+            box-shadow: 0 -8px 24px rgba(44, 36, 22, 0.06);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin: 4rem 0 1.5rem 0;
+            color: var(--primary);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 2.5rem 0 1rem 0;
+            color: var(--primary);
+        }
+
+        p {
+            font-size: 1.15rem;
+            margin-bottom: 1.5rem;
+            color: #4a3f2f;
+            line-height: 1.8;
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: #5a4a35;
+            margin-bottom: 3rem;
+            line-height: 1.7;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: underline;
+            text-decoration-color: var(--accent);
+            text-decoration-thickness: 2px;
+            transition: all 0.3s;
+        }
+
+        a:hover {
+            color: var(--accent);
+        }
+
+        .tech-link {
+            color: #5a4a35;
+            text-decoration: none;
+            border-bottom: 1px dotted var(--accent);
+            transition: all 0.2s;
+        }
+
+        .tech-link:hover {
+            color: var(--accent);
+            border-bottom-style: solid;
+            border-bottom-width: 2px;
+        }
+
+        .button-group {
+            margin: 3rem 0;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            display: inline-block;
+            background: var(--primary);
+            color: var(--light);
+            padding: 0.9rem 2rem;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 2px solid var(--primary);
+        }
+
+        .button:hover {
+            background: transparent;
+            border: 2px solid var(--primary);
+            border-color: var(--accent);
+            color: var(--primary);
+        }
+
+        .button-secondary {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .button-secondary:hover {
+            background: var(--secondary);
+            border-color: var(--accent);
+            color: var(--primary);
+        }
+
+        code {
+            background: var(--secondary);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        pre {
+            background: var(--primary);
+            color: var(--light);
+            padding: 2rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 2rem 0;
+            line-height: 1.6;
+        }
+
+        pre code {
+            background: transparent;
+            color: var(--light);
+            padding: 0;
+        }
+
+        .demo-section {
+            background: var(--secondary);
+            padding: 2.5rem;
+            border-radius: 20px;
+            margin: 2rem 0;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .demo-item {
+            text-align: center;
+        }
+
+        .demo-item img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .demo-item h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-item {
+            background: var(--secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 1rem;
+            color: #5a4a35;
+            line-height: 1.6;
+        }
+
+        .command-block {
+            background: var(--secondary);
+            padding: 2.5rem;
+            border-radius: 20px;
+            margin: 2rem 0;
+        }
+
+        .command-item {
+            margin-bottom: 2.5rem;
+        }
+
+        .command-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .command-name {
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .command-desc {
+            font-size: 1.05rem;
+            color: #5a4a35;
+            line-height: 1.7;
+        }
+
+        article {
+            margin: 3rem 0;
+        }
+
+        section {
+            margin: 2rem 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #5a4a35;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 2rem 1.5rem;
+            }
+
+            #scrollToTop {
+                width: 44px;
+                height: 44px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            #scrollToTop svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            body::-webkit-scrollbar {
+                width: 12px;
+            }
+
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Bottom Blur Bar -->
+    <div id="bottomBlur"></div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollToTop" aria-label="Scroll to top">
+        <svg viewBox="0 0 24 24">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <main class="container">
+        <header>
+            <h1>Grammar-based File Compression Tool</h1>
+            <p class="subtitle">Brick Compressor is a high-performance, <a href="https://en.wikipedia.org/wiki/Open-source_software" class="tech-link" target="_blank" rel="noopener noreferrer">open-source</a> file compression tool built with <a href="https://www.rust-lang.org/" class="tech-link" target="_blank" rel="noopener noreferrer">Rust</a>. Featuring grammar-based compression inspired by the <a href="https://en.wikipedia.org/wiki/Re-Pair" class="tech-link" target="_blank" rel="noopener noreferrer">Re-Pair algorithm</a>, optional <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256-GCM</a> encryption, <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32</a> verification, and parallel processing with <a href="https://github.com/rayon-rs/rayon" class="tech-link" target="_blank" rel="noopener noreferrer">Rayon</a>. Perfect for developers, system administrators, and anyone needing secure, efficient file compression.</p>
+
+            <div class="button-group">
+                <a href="https://github.com/aryansrao/brick-gram-compression" class="button" rel="noopener noreferrer"
+                    aria-label="View Brick Compressor on GitHub">View on GitHub</a>
+                <a href="#installation" class="button button-secondary"
+                    aria-label="Jump to installation instructions">Get Started</a>
+            </div>
+        </header>
+
+        <article>
+            <section>
+                <div class="demo-section">
+                    <h2 style="margin-top: 0;">See It In Action</h2>
+                    <div class="demo-grid">
+                        <div class="demo-item">
+                            <img src="https://raw.githubusercontent.com/aryansrao/brick-gram-compression/main/demo/compression.gif" alt="Brick Compressor compression demonstration showing real-time compression progress">
+                            <h4>Compression Demo</h4>
+                        </div>
+                        <div class="demo-item">
+                            <img src="https://raw.githubusercontent.com/aryansrao/brick-gram-compression/main/demo/decompression.gif" alt="Brick Compressor decompression demonstration showing file restoration">
+                            <h4>Decompression Demo</h4>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>What is Brick Compressor?</h2>
+                <p>Brick Compressor is a sophisticated file compression solution designed for developers, <a href="https://en.wikipedia.org/wiki/System_administrator" class="tech-link" target="_blank" rel="noopener noreferrer">system administrators</a>, and power users who need efficient, secure file compression with modern performance characteristics. Unlike traditional compression tools that rely solely on statistical methods, Brick implements a grammar-based compression approach inspired by the academic <a href="https://en.wikipedia.org/wiki/Re-Pair" class="tech-link" target="_blank" rel="noopener noreferrer">Re-Pair algorithm</a>, which builds a hierarchical dictionary of repeated patterns in your data for superior compression on structured files.</p>
+
+                <p>Built entirely in <a href="https://www.rust-lang.org/" class="tech-link" target="_blank" rel="noopener noreferrer">Rust</a> for maximum performance and memory safety, Brick Compressor leverages modern multi-core <a href="https://en.wikipedia.org/wiki/Central_processing_unit" class="tech-link" target="_blank" rel="noopener noreferrer">processors</a> through parallel processing with the <a href="https://github.com/rayon-rs/rayon" class="tech-link" target="_blank" rel="noopener noreferrer">Rayon</a> library. Both the pair counting phase and the replacement phase are fully parallelized, allowing the compressor to process large files efficiently by utilizing all available <a href="https://en.wikipedia.org/wiki/Multi-core_processor" class="tech-link" target="_blank" rel="noopener noreferrer">CPU cores</a>. This architectural decision means compression speed scales nearly linearly with the number of cores on your system, making it ideal for modern hardware and large-scale data processing workflows.</p>
+
+                <p>Security and data integrity are first-class features in Brick Compressor. The tool offers optional <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256</a> encryption in <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">GCM (Galois/Counter Mode)</a> for authenticated encryption that protects your compressed archives with military-grade security. Every compressed file includes <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksums</a> for automatic corruption detection during decompression, ensuring data integrity across storage and transmission. The combination of authenticated encryption and checksums provides multiple layers of protection for sensitive data.</p>
+            </section>
+
+            <section>
+                <h2>Key Features and Capabilities</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <div class="feature-title">Grammar-based Compression</div>
+                        <div class="feature-desc">Dictionary-based compression inspired by Re-Pair for high efficiency on structured data and repetitive patterns</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-title">Parallel Processing</div>
+                        <div class="feature-desc">Multi-threaded pair counting and replacement using Rayon for maximum performance on multi-core systems</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-title">AES-256-GCM Encryption</div>
+                        <div class="feature-desc">Optional military-grade authenticated encryption with passphrase-based key derivation using SHA-256</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-title">CRC32 Verification</div>
+                        <div class="feature-desc">Automatic integrity checking ensures data accuracy and detects corruption during decompression</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-title">Rich CLI Interface</div>
+                        <div class="feature-desc">Modern command-line interface with progress bars, statistics, compression ratios, and ETA display</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-title">Cross-platform</div>
+                        <div class="feature-desc">Runs on Linux, macOS, and Windows anywhere Rust is supported with consistent behavior</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>How Brick Compressor Works</h2>
+                <p>The compression algorithm in Brick Compressor implements a modern variant of the <a href="https://en.wikipedia.org/wiki/Re-Pair" class="tech-link" target="_blank" rel="noopener noreferrer">Re-Pair algorithm</a> with several performance enhancements. The process begins with pair counting, where the algorithm scans through the input data to find all adjacent symbol pairs and counts their frequency in parallel across multiple threads. This parallel counting phase significantly accelerates processing on large files by dividing the work among available <a href="https://en.wikipedia.org/wiki/Central_processing_unit" class="tech-link" target="_blank" rel="noopener noreferrer">CPU cores</a>.</p>
+
+                <p>Once pair frequencies are calculated, the algorithm enters the rule creation phase. It identifies the most frequent pair that appears above the configurable minimum frequency threshold (default: 2 occurrences) and creates a new grammar rule by assigning a fresh symbol to represent that pair. The algorithm then performs parallel replacement, scanning through the data and replacing all instances of the chosen pair with the new symbol. This process repeats iteratively—counting pairs in the modified data, selecting the most frequent pair, and replacing it—until either no pairs meet the minimum frequency threshold or the optional maximum rule limit is reached.</p>
+
+                <p>The serialization format is designed for efficiency and portability. Compressed files use the <code>.brick</code> extension and contain a structured header with magic bytes (<code>BRCK</code>) for file type identification, version information for format compatibility, and flags indicating whether encryption is enabled. The payload section stores the complete grammar rules dictionary, the final compressed sequence of symbols, the original filename in obfuscated form, and a <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a> for the entire payload. When encryption is enabled, the entire payload is encrypted using <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256</a> in <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">GCM mode</a> with a random 12-byte nonce for each file.</p>
+
+                <p>Decompression reverses the process by reading the grammar rules from the archive and recursively expanding symbols back to their original pairs. The algorithm starts with the compressed sequence and systematically replaces each non-terminal symbol with its corresponding pair according to the grammar rules, continuing recursively until only original input symbols remain. Throughout decompression, the tool verifies the <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a> to detect any corruption, and when encryption is enabled, the <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">GCM authentication tag</a> provides cryptographic verification that the data hasn't been tampered with.</p>
+            </section>
+
+            <section id="installation">
+                <h2>Installation Guide</h2>
+                <p>Installing Brick Compressor requires the <a href="https://www.rust-lang.org/" class="tech-link" target="_blank" rel="noopener noreferrer">Rust programming language</a> toolchain, which includes the <a href="https://doc.rust-lang.org/cargo/" class="tech-link" target="_blank" rel="noopener noreferrer">Cargo package manager</a> and build system. If you don't have Rust installed, visit <a href="https://rustup.rs" rel="noopener noreferrer">rustup.rs</a> and follow the simple one-command installation process that works on <a href="https://en.wikipedia.org/wiki/Linux" class="tech-link" target="_blank" rel="noopener noreferrer">Linux</a>, <a href="https://en.wikipedia.org/wiki/MacOS" class="tech-link" target="_blank" rel="noopener noreferrer">macOS</a>, and <a href="https://en.wikipedia.org/wiki/Microsoft_Windows" class="tech-link" target="_blank" rel="noopener noreferrer">Windows</a>. The Rust installation typically completes in just a few minutes and provides everything needed to build Rust applications.</p>
+
+                <p>Once Rust is installed, clone the Brick Compressor repository from <a href="https://en.wikipedia.org/wiki/GitHub" class="tech-link" target="_blank" rel="noopener noreferrer">GitHub</a> using <a href="https://en.wikipedia.org/wiki/Git" class="tech-link" target="_blank" rel="noopener noreferrer">git</a> and navigate into the project directory. The build process is straightforward and handles all dependencies automatically through Cargo's dependency resolution system defined in <code>Cargo.toml</code>.</p>
+
+                <pre><code>git clone https://github.com/aryansrao/brick-gram-compression
+cd brick-gram-compression</code></pre>
+
+                <p>Build the project in release mode for optimized performance. The <code>--release</code> flag enables all compiler optimizations, producing a production-ready <a href="https://en.wikipedia.org/wiki/Executable" class="tech-link" target="_blank" rel="noopener noreferrer">binary</a> with maximum speed and efficiency. This compilation may take a few minutes as Cargo downloads and compiles all dependencies.</p>
+
+                <pre><code>cargo build --release</code></pre>
+
+                <p>For system-wide installation, use Cargo's install command which compiles the project and places the binary in your Cargo bin directory (typically <code>~/.cargo/bin</code> on <a href="https://en.wikipedia.org/wiki/Unix-like" class="tech-link" target="_blank" rel="noopener noreferrer">Unix-like systems</a>). Ensure this directory is in your <a href="https://en.wikipedia.org/wiki/PATH_(variable)" class="tech-link" target="_blank" rel="noopener noreferrer">PATH environment variable</a> to run the command from anywhere.</p>
+
+                <pre><code>cargo install --path .</code></pre>
+            </section>
+
+            <section>
+                <h2>Complete Command Reference</h2>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">brick-compressor -c &lt;file&gt; - Compress a File</div>
+                        <div class="command-desc">Compress the specified input file using grammar-based compression. By default, creates an output file with the <code>.brick</code> extension appended to the original filename. The compression process analyzes the file for repeated patterns, builds an optimal grammar dictionary, and stores the compressed data with <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 verification</a>. Progress is displayed with compression ratio, speed, and estimated time remaining.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">brick-compressor -c &lt;file&gt; -e -p &lt;passphrase&gt; - Compress with Encryption</div>
+                        <div class="command-desc">Compress a file with <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256</a> encryption in <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">GCM mode</a> using the provided passphrase. The passphrase is hashed with <a href="https://en.wikipedia.org/wiki/SHA-2" class="tech-link" target="_blank" rel="noopener noreferrer">SHA-256</a> to derive a 256-bit encryption key, and a random nonce is generated for each file. The resulting archive is protected with authenticated encryption, ensuring both confidentiality and integrity of the compressed data.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">brick-compressor -d &lt;file.brick&gt; - Decompress a File</div>
+                        <div class="command-desc">Decompress a <code>.brick</code> archive back to its original form. The decompressor reads the grammar rules, expands the compressed sequence recursively, verifies the <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a> for data integrity, and restores the file using its embedded original filename. If the archive is encrypted, you must provide the correct passphrase with the <code>-p</code> flag.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">brick-compressor -d &lt;file.brick&gt; -p &lt;passphrase&gt; - Decompress Encrypted File</div>
+                        <div class="command-desc">Decompress an encrypted archive by providing the correct passphrase. The tool decrypts the payload using <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256-GCM</a>, verifies the authentication tag to detect tampering, checks the <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a>, and restores the original file. If the passphrase is incorrect or the data has been modified, decompression will fail with a clear error message.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">-o &lt;output&gt; - Specify Output Path</div>
+                        <div class="command-desc">Override the default output filename for both compression and decompression operations. For compression, defaults to appending <code>.brick</code> to the input filename. For decompression, defaults to the original filename embedded in the archive. This option is useful for organizing archives in specific directories or using custom naming conventions.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">--min-count &lt;N&gt; - Set Minimum Pair Frequency</div>
+                        <div class="command-desc">Configure the minimum number of occurrences required for a pair to be eligible for rule creation (default: 2). Higher values create fewer rules and faster compression but may result in lower compression ratios. Lower values find more patterns but increase compression time and rule count. Tune this parameter based on your file characteristics and performance requirements.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">--max-rules &lt;N&gt; - Limit Maximum Rules</div>
+                        <div class="command-desc">Set a hard limit on the maximum number of grammar rules to create during compression (default: unlimited). This parameter controls the trade-off between compression ratio and compression time. Limiting rules can speed up compression on very large files at the cost of potentially lower compression ratios. Useful for time-constrained environments or when consistent compression times are more important than optimal ratios.</div>
+                    </div>
+                </div>
+
+                <div class="command-block">
+                    <div class="command-item">
+                        <div class="command-name">--threads &lt;N&gt; - Control Thread Count</div>
+                        <div class="command-desc">Specify the number of threads to use for parallel processing (default: all available <a href="https://en.wikipedia.org/wiki/Central_processing_unit" class="tech-link" target="_blank" rel="noopener noreferrer">CPU cores</a>). Brick Compressor automatically detects your system's core count and uses all available cores for maximum performance. Reduce this value if you need to limit CPU usage for other concurrent tasks, or when running on shared systems where resource usage should be controlled.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>Encryption and Security Details</h2>
+                <p>Brick Compressor implements robust security features designed to protect sensitive data during compression, storage, and transmission. The encryption system uses <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256</a> in <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">Galois/Counter Mode (GCM)</a>, which provides authenticated encryption with associated data. This mode combines confidentiality through encryption with integrity protection through cryptographic authentication, ensuring that encrypted data cannot be modified or tampered with without detection.</p>
+
+                <p>The key derivation process uses <a href="https://en.wikipedia.org/wiki/SHA-2" class="tech-link" target="_blank" rel="noopener noreferrer">SHA-256</a> to hash user-provided passphrases into 256-bit encryption keys. Each compressed file generates a unique random 12-byte nonce (number used once) that ensures the same file compressed multiple times with the same passphrase produces different encrypted outputs, preventing pattern analysis attacks. The GCM mode's built-in authentication tag provides cryptographic verification that the ciphertext hasn't been modified, complementing the <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a> used for detecting accidental corruption.</p>
+
+                <p>Data integrity verification operates at multiple levels. Every compressed archive includes a <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a> of the payload that's automatically verified during decompression, detecting accidental corruption from storage media failures, transmission errors, or file system issues. When encryption is enabled, the <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode" class="tech-link" target="_blank" rel="noopener noreferrer">GCM authentication tag</a> provides cryptographic integrity protection that detects intentional modifications or tampering attempts. This dual-layer approach ensures both accidental and malicious data corruption are caught before decompression completes.</p>
+            </section>
+
+            <section>
+                <h2>Usage Examples and Common Workflows</h2>
+                <p>The most basic workflow involves simple compression and decompression without encryption. This is ideal for archiving files where security isn't a primary concern but space savings and data integrity matter. The compression process displays a rich progress bar showing real-time statistics including compression ratio, throughput speed, and estimated time to completion.</p>
+
+                <pre><code># Compress a single file
+brick-compressor -c document.txt
+# Output: document.txt.brick
+
+# Decompress back to original
+brick-compressor -d document.txt.brick
+# Output: document.txt (original filename restored)</code></pre>
+
+                <p>For sensitive data requiring encryption, add the <code>-e</code> flag and provide a strong passphrase. The same passphrase must be used during decompression to recover the original file. Choose passphrases that are long, random, and difficult to guess for maximum security. Consider using a <a href="https://en.wikipedia.org/wiki/Password_manager" class="tech-link" target="_blank" rel="noopener noreferrer">password manager</a> to generate and store complex passphrases.</p>
+
+                <pre><code># Compress with encryption
+brick-compressor -c confidential.pdf -e -p "my-secure-passphrase-2024"
+# Output: confidential.pdf.brick (encrypted)
+
+# Decompress encrypted file
+brick-compressor -d confidential.pdf.brick -p "my-secure-passphrase-2024"
+# Output: confidential.pdf (decrypted and restored)</code></pre>
+
+                <p>Custom output paths and advanced compression parameters give you fine control over the compression process. Specify output directories for organized archival, adjust minimum pair counts for performance tuning, limit maximum rules for consistent compression times, or control thread usage for resource management on shared systems.</p>
+
+                <pre><code># Compress with custom output path
+brick-compressor -c large-dataset.json -o archives/dataset-backup.brick
+
+# Compress with tuned parameters
+brick-compressor -c source-code.tar -e -p "project-secret" \
+  --min-count 3 --max-rules 10000 --threads 4
+
+# Batch compression of multiple files
+for file in *.log; do
+    brick-compressor -c "$file" -o "compressed/$file.brick"
+done</code></pre>
+
+                <p>The verification system automatically confirms successful compression by attempting to decompress and comparing the output with the original input. This catch-all verification ensures that compressed archives are valid and can be successfully restored, giving you confidence that your data is safely archived.</p>
+
+                <pre><code># Compression automatically verifies the output
+brick-compressor -c important-data.db -e -p "secure-pass"
+# Tool internally verifies decompression matches original
+# Displays "✓ Verification successful" message</code></pre>
+            </section>
+
+            <section>
+                <h2>Performance Characteristics and Optimization</h2>
+                <p>Brick Compressor is architected for high performance on modern multi-core systems through extensive parallelization. The compression algorithm parallelizes both the pair counting phase and the replacement phase using <a href="https://github.com/rayon-rs/rayon" class="tech-link" target="_blank" rel="noopener noreferrer">Rayon</a>, a work-stealing <a href="https://en.wikipedia.org/wiki/Thread_pool" class="tech-link" target="_blank" rel="noopener noreferrer">thread pool</a> library that efficiently distributes work across available <a href="https://en.wikipedia.org/wiki/Central_processing_unit" class="tech-link" target="_blank" rel="noopener noreferrer">CPU cores</a>. On systems with 8 or more cores, compression speed can be 5-7x faster than single-threaded implementations, making it practical to compress large datasets quickly.</p>
+
+                <p>The real-time progress interface provides comprehensive statistics during compression including current compression ratio (how much space is being saved), throughput speed in megabytes per second, percentage completion for long-running operations, estimated time remaining based on current progress, and rule count showing how many patterns have been identified. This visibility helps you understand compression performance and make informed decisions about tuning parameters for specific file types.</p>
+
+                <p>Compression ratio varies significantly based on file type and content characteristics. Text files, source code, log files, and structured data like <a href="https://en.wikipedia.org/wiki/JSON" class="tech-link" target="_blank" rel="noopener noreferrer">JSON</a> or <a href="https://en.wikipedia.org/wiki/XML" class="tech-link" target="_blank" rel="noopener noreferrer">XML</a> typically compress very well (often 60-80% size reduction) due to repetitive patterns and structured content. Binary formats and already-compressed data like <a href="https://en.wikipedia.org/wiki/JPEG" class="tech-link" target="_blank" rel="noopener noreferrer">JPEG images</a> or <a href="https://en.wikipedia.org/wiki/Zip_(file_format)" class="tech-link" target="_blank" rel="noopener noreferrer">ZIP archives</a> may show minimal compression since they lack the repetitive patterns that grammar-based compression exploits.</p>
+
+                <p>Performance tuning through command-line parameters lets you optimize for specific scenarios. Increasing <code>--min-count</code> creates fewer rules and compresses faster but may reduce compression ratio slightly. Setting <code>--max-rules</code> caps compression time at the cost of potentially not finding all patterns. Adjusting <code>--threads</code> allows resource management on shared systems. Experiment with these parameters to find the optimal balance for your workload between compression speed, compression ratio, and system resource usage.</p>
+            </section>
+
+            <section>
+                <h2>Real-World Use Cases and Applications</h2>
+                <p><strong>Log File Archival:</strong> System administrators managing <a href="https://en.wikipedia.org/wiki/Log_file" class="tech-link" target="_blank" rel="noopener noreferrer">server logs</a>, application logs, and audit trails can use Brick Compressor to dramatically reduce storage requirements while maintaining data integrity through <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 verification</a>. Log files contain highly repetitive patterns that grammar-based compression handles exceptionally well, often achieving 70-80% size reduction. The parallel processing ensures even multi-gigabyte log files compress quickly without impacting server performance.</p>
+
+                <p><strong>Source Code Distribution:</strong> Developers can distribute source code repositories, documentation, and development assets in compressed archives that preserve file integrity and support optional encryption for proprietary code. The compression algorithm excels at source code due to repeated syntax patterns, library imports, and coding conventions, producing significantly smaller archives than traditional compression tools for many code bases.</p>
+
+                <p><strong>Backup and Disaster Recovery:</strong> <a href="https://en.wikipedia.org/wiki/Backup" class="tech-link" target="_blank" rel="noopener noreferrer">Backup systems</a> benefit from Brick Compressor's combination of space-efficient compression, strong encryption for sensitive data, automatic integrity verification, and parallel processing for faster backup completion. The <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksums</a> provide confidence that backups remain intact over time and can be successfully restored when needed.</p>
+
+                <p><strong>Data Transfer Optimization:</strong> When transferring large files over networks with limited <a href="https://en.wikipedia.org/wiki/Bandwidth_(computing)" class="tech-link" target="_blank" rel="noopener noreferrer">bandwidth</a>, compressing with Brick reduces transfer time proportionally to the compression ratio achieved. The encryption feature protects data in transit, complementing <a href="https://en.wikipedia.org/wiki/Transport_Layer_Security" class="tech-link" target="_blank" rel="noopener noreferrer">TLS/SSL</a> with an additional layer of security that persists after transfer completes and files are stored.</p>
+
+                <p><strong>Compliance and Audit Trails:</strong> Organizations subject to data retention regulations can compress audit logs, financial records, and compliance documentation with encryption and verified integrity. The <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 verification</a> provides evidence that archived data hasn't been corrupted over retention periods, supporting compliance with standards like <a href="https://en.wikipedia.org/wiki/Service_Organization_Control" class="tech-link" target="_blank" rel="noopener noreferrer">SOC 2</a>, <a href="https://en.wikipedia.org/wiki/General_Data_Protection_Regulation" class="tech-link" target="_blank" rel="noopener noreferrer">GDPR</a>, and industry-specific regulations.</p>
+            </section>
+
+            <section>
+                <h2>File Format Specification</h2>
+                <p>The <code>.brick</code> file format is designed for simplicity, portability, and future extensibility. Each archive begins with a fixed header containing magic bytes <code>BRCK</code> (0x4252434B) for file type identification, allowing systems to recognize Brick archives through file signature detection. A version field supports format evolution while maintaining backward compatibility with older archives. Flags indicate whether encryption is enabled, allowing tools to immediately determine whether a passphrase is required for decompression.</p>
+
+                <p>The payload section contains all compressed data in a structured format. The grammar rules dictionary stores the complete set of pair-to-symbol mappings created during compression, allowing perfect reconstruction during decompression. The compressed sequence represents the original file after all grammar rules have been applied, typically achieving significant size reduction. The original filename is embedded in obfuscated form, allowing automatic restoration without user input. A <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksum</a> of the entire payload enables automatic corruption detection.</p>
+
+                <p>When encryption is enabled, the payload undergoes <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256-GCM</a> encryption before being written to the archive. A random 12-byte nonce is generated and stored in the archive header, ensuring unique encryption even for identical files compressed with the same passphrase. The GCM authentication tag is appended to the ciphertext, providing cryptographic verification during decryption that detects any tampering or modification attempts.</p>
+            </section>
+
+            <section>
+                <h2>Why Choose Brick Compressor?</h2>
+                <p><strong>Grammar-based Compression Excellence:</strong> Unlike statistical compression methods, the grammar-based approach builds a hierarchical understanding of your data's structure, finding patterns that other algorithms miss. This makes it particularly effective for structured data, source code, configuration files, and documents with repetitive content.</p>
+
+                <p><strong>Modern Parallel Performance:</strong> Built on <a href="https://www.rust-lang.org/" class="tech-link" target="_blank" rel="noopener noreferrer">Rust</a> and <a href="https://github.com/rayon-rs/rayon" class="tech-link" target="_blank" rel="noopener noreferrer">Rayon</a>, Brick Compressor scales efficiently across multiple cores, delivering compression speeds that improve nearly linearly with core count. On modern 8-16 core systems, this translates to dramatically faster compression compared to single-threaded tools.</p>
+
+                <p><strong>Security Without Compromise:</strong> Optional <a href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard" class="tech-link" target="_blank" rel="noopener noreferrer">AES-256-GCM</a> encryption provides military-grade security with authenticated encryption, ensuring both confidentiality and integrity. Unlike tools that bolt on encryption as an afterthought, Brick's security features are deeply integrated and verified for correctness.</p>
+
+                <p><strong>Integrity Verification Built-in:</strong> Every archive includes <a href="https://en.wikipedia.org/wiki/Cyclic_redundancy_check" class="tech-link" target="_blank" rel="noopener noreferrer">CRC32 checksums</a> and automatic verification during decompression. Combined with GCM authentication for encrypted archives, you get multiple layers of protection against both accidental corruption and intentional tampering.</p>
+
+                <p><strong>Developer-Friendly CLI:</strong> Rich progress bars, detailed statistics, flexible configuration options, and clear error messages make Brick Compressor pleasant to use both interactively and in automated scripts. The tool respects Unix philosophy while providing modern user experience enhancements.</p>
+
+                <p><strong>Open Source and Cross-Platform:</strong> Fully <a href="https://en.wikipedia.org/wiki/Open-source_software" class="tech-link" target="_blank" rel="noopener noreferrer">open source</a> with no vendor lock-in, runs identically on <a href="https://en.wikipedia.org/wiki/Linux" class="tech-link" target="_blank" rel="noopener noreferrer">Linux</a>, <a href="https://en.wikipedia.org/wiki/MacOS" class="tech-link" target="_blank" rel="noopener noreferrer">macOS</a>, and <a href="https://en.wikipedia.org/wiki/Microsoft_Windows" class="tech-link" target="_blank" rel="noopener noreferrer">Windows</a>, and uses standard algorithms and formats that ensure long-term accessibility of your archives.</p>
+            </section>
+
+            <div class="button-group">
+                <a href="https://github.com/aryansrao/brick-gram-compression" class="button" rel="noopener noreferrer"
+                    aria-label="View Brick Compressor repository on GitHub">View on GitHub</a>
+                <a href="https://github.com/aryansrao/brick-gram-compression/issues" class="button button-secondary"
+                    rel="noopener noreferrer" aria-label="Report bugs or request features">Report Issues</a>
+            </div>
+        </article>
+    </main>
+
+    <footer role="contentinfo">
+        <p>This was made by <a href="https://aryansrao.github.io" class="tech-link" target="_blank"
+                rel="noopener noreferrer">Aryan S Rao</a>
+        </p>
+    </footer>
+
+    <script>
+        // Scroll to Top Button
+        const scrollToTopBtn = document.getElementById('scrollToTop');
+
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.classList.add('visible');
+            } else {
+                scrollToTopBtn.classList.remove('visible');
+            }
+        });
+
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
+</body>
+
+</html>
